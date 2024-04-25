@@ -63,7 +63,7 @@ def frac_num_lif(V, V_trace, Vl=-7e-2, dt=1e-4, beta=0.2, gl=2.5e-8, Cm=5e-10,I=
 
 def main():
 
-	num_steps = 100000
+	num_steps = 1000
 	dt = 1e-4
 
 	V = -7e-2
@@ -79,7 +79,7 @@ def main():
 
 	f = open("data.txt", "w")
 	now = datetime.datetime.now()
-	f.write(str(now))
+	f.write(str(now) + "\n")
 	for step in range(int(num_steps)):
 		f.write(str(V_trace[step]) + "\n")
 
