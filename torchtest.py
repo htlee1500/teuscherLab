@@ -79,11 +79,11 @@ def main():
 
 	f = open("data.txt", "w")
 	now = datetime.datetime.now()
-	#f.write(str(now))
-	#for step in range(int(num_steps)):
-	#	f.write(str(V_trace[step]) + "\n")
+	f.write(str(now))
+	for step in range(int(num_steps)):
+		f.write(str(V_trace[step]) + "\n")
 
-	#f.close()
+	f.close()
 
 	plotsrc.plot_mem(V_trace, 0, num_steps, -0.07, -0.06, "Fractional Leaky Neuron Model", False, str(now))
 
