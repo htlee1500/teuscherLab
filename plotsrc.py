@@ -24,6 +24,21 @@ def plot_mem(mem, xMin = 0, xMax = 50, yMin = 0, yMax = 1,  title=False, show=Tr
   else:
     plt.savefig(name + ".png")
 
+def plot_two_mem(mem1, mem2, xMin, xMax, yMin, yMax, title, show, name):
+ if title:
+   plt.title(title)
+ plt.plot(mem1)
+ plt.plot(mem2)
+ plt.xlabel("Time Step (0.1ms)")
+ plt.ylabel("Membrane Potential (mV)")
+ plt.xlim([xMin, xMax])
+ plt.ylim([yMin, yMax])
+
+ if show:
+  plt.show()
+ else:
+  plt.savefig(name + ".png")
+
 def plot_step_current_response(cur_in, mem_rec, vline1):
   fig, ax = plt.subplots(2, figsize=(8,6),sharex=True)
 
