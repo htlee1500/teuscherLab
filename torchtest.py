@@ -65,7 +65,6 @@ def main():
 
 	num_steps = 100000
 	dt = 1e-4
-	time_elapsed = int(num_steps*dt)
 
 	V = -7e-2
 	V_trace = list()
@@ -86,7 +85,7 @@ def main():
 
 	#f.close()
 
-	plotsrc.plot_mem(V_trace, 0, time_elapsed, -0.07, -0.06, "Fractional Leaky Neuron Model", False, str(now))
+	plotsrc.plot_mem(V_trace, 0, num_steps, -0.07, -0.06, "Fractional Leaky Neuron Model", False, str(now))
 
 
 if __name__ == '__main__':
