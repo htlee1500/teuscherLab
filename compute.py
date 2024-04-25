@@ -1,58 +1,22 @@
 import math
 
-def generate_gamma_single(B=0.2, n=100):
 
-	em = 0.577216
-
-	gamma_values = list()
-
-	for k in range(n):
-		z = B*k + 1
-
-		gamma = z * math.e**(em*z)
-
-		for i in range(1, 51):
-			gamma = gamma * (1+z/n) * math.e**(-1 * z / n)
-
-		gamma = gamma**-1
-
-		gamma_values.append(gamma)
-
-	return gamma_values
-
-def generate_gamma_double(B=0.2, n=100):
-
-	em = 0.577216
-
-	gamma_values = list()
-
-	for k in range(n):
-
-		z = B*k + B
-
-		gamma = z * math.e**(em*z)
-
-		for i in range(1, 51):
-			gamma = gamma * (1+z/n) * math.e**(-1 * z / n)
-
-		gamma = gamma**-1
-
-		gamma_values.append(gamma)
-
-	return gamma_values
-
-def compute_ML_single(B=0.2, tau, t, n=100, gamma_single):
+def mittag_leffler(beta=0.2, tau=0.02, t=1e-4):
 
 	E = 0
-	for i in range(n):
-		E += (-1 * t**B / tau)**i / gamma_single[i]
+	z = 1 * t**beta / tau
 
-	return E
+	p0 = 0
+	p1 = -1 * (math.gamma(1-beta)**2 * math.gamma(1+beta) / math.gamma(1-2*beta)) + math.gamma(1+beta)
+	p1 = p1 / (math.gamma(1+beta) * math.gamma(1-beta) - 1)
 
-def compute_ML_double(B=0.2, tau, t, n=100, gamma_double):
+	q0 = -1 * (math.gamma(1-beta) * math.gamma(1+beta) / math.gamma(1-2*beta)) + math.gamma(1+beta)/math.gamma(1-beta)
+	q0 = q0 / (math.gamma(1+beta) * math.gamma(1-beta) - 1)
 
-	E = 0
-	for i in range(n):
-		E += (-1 * t**B / tau)**i / gamma_double[i]
+	q1 = math.gamma(1+beta) - math.gamma(1-beta)/math.gamma(1-2*beta)
+	q1 = q1 / (math.gamma(1+beta) * math.gamma(1-beta) - 1)
+
+	E = 1 / math.gamma(1-beta) * (p1 + z) / (q0 + q1*z + z**2)
+
 
 	return E

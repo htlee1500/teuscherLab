@@ -10,15 +10,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #@title Plotting Settings
-def plot_mem(mem, title=False):
+def plot_mem(mem, xMin = 0, xMax = 50, yMin = 0, yMax = 1,  title=False, show=True, name="sample"):
   if title:
     plt.title(title)
   plt.plot(mem)
-  plt.xlabel("Time step")
+  plt.xlabel("Time (ms)")
   plt.ylabel("Membrane Potential")
-  plt.xlim([0, 50])
-  plt.ylim([0, 1])
-  plt.show()
+  plt.xlim([xMin, xMax])
+  plt.ylim([yMin, yMax])
+
+  if show:
+    plt.show()
+  else:
+    plt.savefig(name + ".png")
 
 def plot_step_current_response(cur_in, mem_rec, vline1):
   fig, ax = plt.subplots(2, figsize=(8,6),sharex=True)
