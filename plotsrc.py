@@ -17,7 +17,7 @@ def plot_mem(mem, xMin = 0, xMax = 50, yMin = 0, yMax = 1,  title=False, show=Tr
   plt.xlabel("Time Step (0.1ms)")
   plt.ylabel("Membrane Potential")
   plt.xlim([xMin, xMax])
-  plt.ylim([yMin, yMax])
+  plt.ylim([yMin, yMax]) 
 
   if show:
     plt.show()
