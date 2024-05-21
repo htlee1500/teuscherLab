@@ -19,7 +19,7 @@ def main():
 	duration = 2
 	inits = [-7e-2]
 
-	integrator = bp.fde.CaputoL1Schema(test_system, alpha = 0.2, num_memory = int(duration/dt), inits = inits)
+	integrator = bp.fde.CaputoL1Schema(test_system, alpha = 1, num_memory = int(duration/dt), inits = inits)
 
 	runner = bp.IntegratorRunner(integrator, monitors = list('x'), inits = inits, dt = dt)
 
