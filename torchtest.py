@@ -13,85 +13,128 @@ import compute
 import math
 import datetime
 
-# Standard LIF model; takes in a voltage value and calculates
-# the voltage at the next time step.
-def leaky_integrate_neuron(V, time_step=1e-4, I=0.3e-9, gl=2.5e-8, Cm=5e-10):
-	tau = Cm / gl
-	V = V + (time_step/tau)*(-1 * V + I/gl)
-	return V
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
 
-# Fractional LIF model; uses previous voltage values to approximate next voltage
-def frac_num_lif(V_trace, V_weight, thresh=-50, V_reset=-70,  Vl=-70, dt=0.1, beta=0.2, gl=0.025, Cm=0.5,I=3):
+import Fractional_LIF
+import flif_snn
 
-	N = len(V_trace)
-	V = V_trace[N - 1]
-	tau = Cm / gl
 
-	spike = (V > thresh)
 
-	# V_new is the voltage at t_N+1
-	# Computing Markov term
-	V_new = dt**(beta) * math.gamma(2-beta) * (-gl*(V-Vl)+I) / Cm + V
+def print_batch_accuracy(net, batch_size, data, targets, train=False):
+        output, _ = net(data.view(batch_size, -1))
+        _, idx = output.sum(dim=0).max(1)
+        acc = np.mean((targets == idx).detach().cpu().numpy())
 
-	# Computing voltage trace
+        if train:
+                print(f"Train set accuracy for a single minibatch: {acc*100:.2f}%")
+        else:
+                print(f"Test set accuracy for a single minibatch: {acc*100:.2f}%")
 
-	voltage_trace = 0
-	# Trace calculated via inner product of voltage delta and weight vectors
-	delta_V = np.subtract(V_trace[1:],V_trace[0:(len(V_trace)-1)])
-	memory_V = np.inner(V_weight[-len(V_trace)+1:],delta_V[0:(len(delta_V))])
+def train_printer(epoch, iter_counter, loss_hist, test_loss_hist, counter, data, targets, test_data, test_targets, net, batch_size):
 
-	V_new -= memory_V
+        print(f"Epoch {epoch}, Iteration {iter_counter}")
 
-	# Reset voltage if spiking (not sure if this is computationally efficient)
-	V_new -= (thresh - V_reset)*spike
+        print(f"Train Set Loss: {loss_hist[counter]:.2f}")
 
-	return V_new
+        print(f"Test Set Loss: {test_loss_hist[counter]:.2f}")
+
+        print_batch_accuracy(net, batch_size, data, targets, train=True)
+
+        print_batch_accuracy(net, batch_size, test_data, test_targets, train=False)
+
+        print("\n")
+
 
 # MAIN FUNCTION
 def main():
 
-	num_steps = 2000
-	beta = 0.2
-	# initial voltage, -70 millivolts
-	V = -70
-	V_trace = list() # list captures all computed voltage values
-	nv = np.arange(num_steps-1)
-	V_weight = (num_steps+1-nv)**(1-beta)-(num_steps-nv)**(1-beta)
+        batch_size = 128
+        data_path='/tmp/data/mnist'
 
-	for step in range(int(num_steps)):
-
-		# First 2 time steps t0, t1 are computed using regular LIF
-		if step < 2:
-
-			V_trace.append(V)
-			V = leaky_integrate_neuron(V)
-
-		# All others use the fractional LIF
-		else:
-			V_trace.append(V)
-			V = frac_num_lif(V_trace, V_weight)
-
-	for step in range(int(num_steps)):
-
-		V_trace[step] = V_trace[step]*1e-3
+        dtype = torch.float
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
 
-	# This block writes the voltage values to a text file
-	# for troubleshooting and debugging
+        transform = transforms.Compose([
+            transforms.Resize((28, 28)),
+            transforms.Grayscale(),
+            transforms.ToTensor(),
+            transforms.Normalize((0,), (1,))])
 
-	f = open("data.txt", "w")
-	now = datetime.datetime.now()
-	f.write(str(now) + "\n")
-	for step in range(int(num_steps)):
-		f.write(str(V_trace[step]) + "\n")
+        mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
+        mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
 
-	f.close()
-
-	# Plotting the list of voltage values
-	plotsrc.plot_mem(V_trace, 0, num_steps, -0.07, -0.05, "Fractional Leaky Neuron Model", True, str(now))
+        print(mnist_train)
+        
+        train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
+        test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
 
 
-#def main():
+        num_input = 28*28
+        num_hidden = 1000
+        num_output = 10
 
+        num_steps = 25
+        
+        net = flif_snn.SNN(num_input, num_hidden, num_output, num_steps).to(device)
+        loss = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas = (0.9, 0.999))
+
+
+        num_epochs = 5
+        loss_hist = list()
+        test_loss_hist = list()
+        counter = 0
+
+        for epoch in range(num_epochs):
+                iter_counter = 0
+                train_batch = iter(train_loader)
+
+                for data, targets in train_batch:
+                        data = data.to(device)
+                        targets = targets.to(device)
+
+                        net.train()
+                        
+                        spike_record, memory_record = net(data.view(batch_size, -1))
+
+                        loss_val = torch.zeros((1), dtype=dtype, device=device)
+                        for step in range(num_steps):
+                                loss_val += loss(memory_record[step], targets)
+
+
+                        optimizer.zero_grad()
+                        loss_val.backward()
+                        optimizer.step()
+
+                        loss_hist.append(loss_val.item())
+
+
+                        with torch.no_grad():
+                                net.eval()
+                                test_data, test_targets = next(iter(test_loader))
+                                test_data = test_data.to(device)
+                                test_targets = test_targets.to(device)
+
+                                
+                                #print(test_data.view(batch_size, -1).size())
+                                test_spike, test_memory = net(test_data.view(batch_size, -1))
+
+                                test_loss = torch.zeros((1), dtype = dtype, device=device)
+                                for step in range(num_steps):
+                                        test_loss += loss(test_memory[step], test_targets)
+
+                                test_loss_hist.append(test_loss.item())
+
+
+                                if counter % 50 == 0:
+                                        train_printer(epoch, iter_counter, loss_hist, test_loss_hist, counter, data, targets, test_data, test_targets, net, batch_size)
+
+                                counter += 1
+                                iter_counter += 1
+
+        
+        
 if __name__ == '__main__':
-	main()
+        main()
