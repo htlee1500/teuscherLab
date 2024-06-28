@@ -21,7 +21,7 @@ import Fractional_LIF
 import flif_snn
 import lif_snn
 
-
+import util
 
 def print_batch_accuracy(net, batch_size, data, targets, train=False):
         output, _ = net(data.view(batch_size, -1))
@@ -80,14 +80,14 @@ def main():
         num_steps = 25
         
         #net = flif_snn.SNN2(num_input, num_hidden1, num_hidden2, num_output, num_steps).to(device)
-        net = flif_snn.SNN(num_input, num_hidden1, num_output, num_steps).to(device)
-        #net = lif_snn.NN(.95, num_input, num_hidden1, num_output, num_steps).to(device)
-        #loss = nn.CrossEntropyLoss()
-        loss = snnfunc.ce_rate_loss()
+        #net = flif_snn.SNN(num_input, num_hidden1, num_output, num_steps).to(device)
+        net = lif_snn.NN(.95, num_input, num_hidden1, num_output, num_steps).to(device)
+        loss = nn.CrossEntropyLoss()
+        #loss = snnfunc.ce_rate_loss()
         optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas = (0.9, 0.999))
 
 
-        num_epochs = 3
+        num_epochs = 1
         loss_hist = list()
         test_loss_hist = list()
         counter = 0
@@ -97,7 +97,8 @@ def main():
                 iter_counter = 0
                 train_batch = iter(train_loader)
 
-                #print(train_batch)
+                print(train_batch)
+                print('tf')
 
                 for data, targets in train_batch:
 
@@ -112,12 +113,10 @@ def main():
                         spike_record, memory_record = net(data.view(batch_size, -1))
 
                         loss_val = torch.zeros((1), dtype=dtype, device=device)
-                        loss_val += loss(spike_record, targets)
-                        """
                         for step in range(num_steps):
                                 #print(spike_record[step][0])
                                 loss_val += loss(spike_record[step], targets)
-                        """
+
                         optimizer.zero_grad()
                         temp = loss_val.backward()
                         optimizer.step()
@@ -137,14 +136,9 @@ def main():
 
 
                                 test_loss = torch.zeros((1), dtype = dtype, device=device)
-
-                                test_loss += loss(test_spike, targets)
-                                
-                                """
                                 for step in range(num_steps):
                                         test_loss += loss(test_spike[step], test_targets)
-                                """
-                                
+
                                 test_loss_hist.append(test_loss.item())
 
 
@@ -173,8 +167,7 @@ def main():
                         correct += (predicted == targets).sum().item()
 
         performance = 100 * correct / total
-        print("Performance:", performance)
-        """
+
         fraction = net.frac_order
         now = datetime.now()
         f = open(now + ".txt", "w")
@@ -185,7 +178,6 @@ def main():
         f.write("Latency encoding \n")
         f.write("Performance at testing: " + str(performance) + "%")
         f.close()
-        """
 
                 
                                 

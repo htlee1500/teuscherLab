@@ -217,9 +217,10 @@ def plot_snn_spikes(spk_in, spk1_rec, spk2_rec, num_steps, title):
                         gridspec_kw = {'height_ratios': [1, 1, 0.4]})
 
   # Plot input spikes
-  splt.raster(spk_in[:,0], ax[0], s=0.03, c="black")
+  splt.raster(spk_in.reshape(num_steps, -1), ax[0], s=0.1, c="black")
   ax[0].set_ylabel("Input Spikes")
   ax[0].set_title(title)
+  ax[0].set_ylim([0,784])
 
   # Plot hidden layer spikes
   splt.raster(spk1_rec.reshape(num_steps, -1), ax[1], s = 0.1, c="black")
