@@ -10,9 +10,8 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 import plotsrc
-import compute
 import math
-from datetime import datetime
+import timeit
 
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
@@ -21,30 +20,14 @@ import Fractional_LIF
 import flif_snn
 import lif_snn
 
+import cProfile
 
 
-def print_batch_accuracy(net, batch_size, data, targets, train=False):
-        output, _ = net(data.view(batch_size, -1))
-        _, idx = output.sum(dim=0).max(1)
-        acc = np.mean((targets == idx).detach().cpu().numpy())
-
-        if train:
-                print(f"Train set accuracy for a single minibatch: {acc*100:.2f}%")
-        else:
-                print(f"Test set accuracy for a single minibatch: {acc*100:.2f}%")
-
-def train_printer(epoch, iter_counter, loss_hist, test_loss_hist, counter, data, targets, test_data, test_targets, net, batch_size):
+def train_printer(epoch, iter_counter, loss_hist, test_loss_hist, counter):
 
         print(f"Epoch {epoch}, Iteration {iter_counter}")
-
         print(f"Train Set Loss: {loss_hist[counter]:.2f}")
-
         print(f"Test Set Loss: {test_loss_hist[counter]:.2f}")
-
-        print_batch_accuracy(net, batch_size, data, targets, train=True)
-
-        print_batch_accuracy(net, batch_size, test_data, test_targets, train=False)
-
         print("\n")
 
 
@@ -73,21 +56,23 @@ def main():
 
 
         num_input = 28*28
-        num_hidden1 = 3000
+        num_hidden1 = 2000
         num_hidden2 = 750
         num_output = 10
 
-        num_steps = 25
+        num_steps = 250
+
+        gain = 1
         
         #net = flif_snn.SNN2(num_input, num_hidden1, num_hidden2, num_output, num_steps).to(device)
-        net = flif_snn.SNN(num_input, num_hidden1, num_output, num_steps).to(device)
+        net = flif_snn.SNN(num_input, num_hidden1, num_output, num_steps, gain).to(device)
         #net = lif_snn.NN(.95, num_input, num_hidden1, num_output, num_steps).to(device)
         #loss = nn.CrossEntropyLoss()
-        loss = snnfunc.ce_rate_loss()
+        loss = snnfunc.ce_count_loss()
         optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas = (0.9, 0.999))
 
 
-        num_epochs = 3
+        num_epochs = 1
         loss_hist = list()
         test_loss_hist = list()
         counter = 0
@@ -97,8 +82,7 @@ def main():
                 iter_counter = 0
                 train_batch = iter(train_loader)
 
-                #print(train_batch)
-
+                
                 for data, targets in train_batch:
 
 
@@ -107,20 +91,34 @@ def main():
                         targets = targets.to(device)
                         
                         net.train()
-                        
-                        
-                        spike_record, memory_record = net(data.view(batch_size, -1))
 
-                        loss_val = torch.zeros((1), dtype=dtype, device=device)
-                        loss_val += loss(spike_record, targets)
-                        """
-                        for step in range(num_steps):
-                                #print(spike_record[step][0])
-                                loss_val += loss(spike_record[step], targets)
-                        """
+                        spiked_data = list()
+                        for sample in data.view(batch_size, -1):
+
+                                spiked_sample = spikegen.rate(sample, num_steps = num_steps, gain = gain)
+
+                                spiked_data.append(spiked_sample) # contains batch_size num_steps x input_size tensors (for MNIST, 128 25x784 tensors)
+
+                        spiked_data = torch.stack(spiked_data)
+                        
+                        spike_record, memory_record = net(spiked_data)
+
+                        _, idx = test_spike.detach().sum(dim=0).max(1)
+                        total = targets.size(0)
+                        correct = (idx == targets).sum().item()
+                        print(correct / total)
+
+
+
+                        start = timeit.default_timer()
+                        loss_val = loss(spike_record, targets)
                         optimizer.zero_grad()
-                        temp = loss_val.backward()
+                        loss_val.backward()
                         optimizer.step()
+                        end = timeit.default_timer()
+                        print("Loss and backprop in", end-start, "seconds")
+
+
 
                         loss_hist.append(loss_val.item())
 
@@ -132,28 +130,42 @@ def main():
                                 test_data = test_data.to(device)
                                 test_targets = test_targets.to(device)
 
+                                spiked_test_data = list()
+                                for sample in test_data.view(batch_size, -1):
+
+                                        spiked_sample = spikegen.rate(sample, num_steps = num_steps, gain = gain)
+
+                                        spiked_test_data.append(spiked_sample) # contains batch_size num_steps x input_size tensors (for MNIST, 128 25x784 tensors)
+
+                                spiked_test_data = torch.stack(spiked_test_data)
+
                                 
-                                test_spike, test_memory = net(test_data.view(batch_size, -1))
+                                test_spike, test_memory = net(spiked_test_data)
+                                #print("Testing batch processed")
 
 
-                                test_loss = torch.zeros((1), dtype = dtype, device=device)
+                                #test_loss = torch.zeros((1), dtype = dtype, device=device)
 
-                                test_loss += loss(test_spike, targets)
-                                
-                                """
-                                for step in range(num_steps):
-                                        test_loss += loss(test_spike[step], test_targets)
-                                """
+                                _, idx = test_spike.detach().sum(dim=0).max(1)
+                                total = targets.size(0)
+                                correct = (idx == targets).sum().item()
+
+                                test_loss = loss(test_spike, test_targets)
                                 
                                 test_loss_hist.append(test_loss.item())
 
 
                                 if counter % 50 == 0:
-                                        train_printer(epoch, iter_counter, loss_hist, test_loss_hist, counter, data, targets, test_data, test_targets, net, batch_size)
-
+                                        train_printer(epoch, iter_counter, loss_hist, test_loss_hist, counter)
+                                        
+                                print("Test set accuracy:", acc)
                                 counter += 1
                                 iter_counter += 1
 
+        iter_len = np.arange(counter)
+        plt.plot(iter_len, loss_hist, label = "Training Loss")
+        plt.plot(iter_len, test_loss_hist, label = "Testing Loss")
+        plt.legend()
         
         # get overall results for file
         test_loader = DataLoader(mnist_test, batch_size = batch_size, shuffle = True, drop_last = False)
@@ -166,7 +178,17 @@ def main():
                         data = data.to(device)
                         targets = targets.to(device)
 
-                        test_spikes, _ = net(data.view(data.size(0), -1))
+                        spiked_data = list()
+                        for sample in data.view(data.size(0), -1):
+
+                                spiked_sample = spikegen.rate(sample, num_steps = num_steps, gain = gain)
+
+                                spiked_data.append(spiked_sample) # contains batch_size num_steps x input_size tensors (for MNIST, 128 25x784 tensors)
+
+                        spiked_data = torch.stack(spiked_data)
+
+
+                        test_spikes, _ = net(spiked_data)
 
                         _, predicted = test_spikes.sum(dim=0).max(1)
                         total += targets.size(0)
@@ -174,20 +196,10 @@ def main():
 
         performance = 100 * correct / total
         print("Performance:", performance)
-        """
-        fraction = net.frac_order
-        now = datetime.now()
-        f = open(now + ".txt", "w")
-        f.write("Network size: " + net.get_dims() + "\n")
-        f.write("Number of steps: " + str(num_steps)+ "\n")
-        f.write("Fractional Level: " + str(fraction)+ "\n")
-        f.write("Batch size: " + str(batch_size) + "\n")
-        f.write("Latency encoding \n")
-        f.write("Performance at testing: " + str(performance) + "%")
-        f.close()
-        """
 
-                
+        
+        plt.show()
                                 
 if __name__ == '__main__':
         main()
+        #cProfile.run(main(), filename = 'profiling.txt')

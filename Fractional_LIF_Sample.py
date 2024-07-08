@@ -13,7 +13,7 @@ import compute
 import math
 import datetime
 
-
+mem_stuff = list()
 
 # Standard LIF model; takes in a voltage value and calculates
 # the voltage at the next time step.
@@ -23,7 +23,7 @@ def leaky_integrate_neuron(V, time_step=0.1, I=4, gl=0.025, Cm=0.5):
         return V
 
 # Fractional LIF model; uses previous voltage values to approximate next voltage
-def frac_num_lif(V_trace, V_weight, I=4, thresh=-50, V_reset=-70,  Vl=-70, dt=0.1, beta=0.15, gl=0.025, Cm=0.5):
+def frac_num_lif(V_trace, V_weight, I=4, thresh=-65, V_reset=-70,  Vl=-70, dt=0.1, beta=0.15, gl=0.025, Cm=0.5):
 
         N = len(V_trace)
         V = V_trace[N - 1]
@@ -40,10 +40,12 @@ def frac_num_lif(V_trace, V_weight, I=4, thresh=-50, V_reset=-70,  Vl=-70, dt=0.
         #delta_V = delta_V[0:N-2]
         memory_V = np.inner(V_weight[-len(delta_V):], delta_V)#np.inner(V_weight[-len(delta_V):],delta_V)
 
+        mem_stuff.append(memory_V)
+
         V_new -= memory_V
 
 	# Reset voltage if spiking (not sure if this is computationally efficient)
-        #V_new -= (thresh - V_reset)*spike
+        V_new -= (V_new - V_reset)*spike
 
         return V_new
 
@@ -51,7 +53,7 @@ def frac_num_lif(V_trace, V_weight, I=4, thresh=-50, V_reset=-70,  Vl=-70, dt=0.
 # MAIN FUNCTION
 def main():
 
-        num_steps = 1000
+        num_steps = 50
         beta = 0.15
         # initial voltage, -70 millivolts
         V = -70
@@ -59,7 +61,20 @@ def main():
         nv = np.arange(num_steps-1)
         V_weight = (num_steps-nv+1)**(1-beta)-(num_steps-nv)**(1-beta)
 
-        I = 3
+        I = list()
+
+        val = 3.5
+        nextval = 1.5
+
+        for i in range(num_steps):
+
+                if i < 200:
+                        temp = val
+                        val = nextval
+                        nextval = temp
+
+                I.append(val)
+                
         
         
         for step in range(int(num_steps)):
@@ -68,38 +83,27 @@ def main():
                 if step < 2:
 
                         V_trace.append(V)
-                        V = leaky_integrate_neuron(V, I=I)
+                        V = leaky_integrate_neuron(V, I=I[i])
 
 		# All others use the fractional
                 else:
-                        
+
                         
                         V_trace.append(V)
-                        V = frac_num_lif(V_trace, V_weight, I=I)
+                        V = frac_num_lif(V_trace, V_weight, I=I[i])
                         #print(V)
                         
-        delta_trace = np.subtract(V_trace[1:], V_trace[0:(num_steps-1)])
-        fake_V_trace = list()
-        fake_V = 0
-        for i in range(num_steps):
-
-                if i == 0:
-                        fake_V = -70
-
-                else:
-                        fake_V = delta_trace[i-1] + fake_V
-
-
-                fake_V_trace.append(fake_V)
 
         for step in range(int(num_steps)):
 
                 V_trace[step] = V_trace[step]*1e-3
-                fake_V_trace[step] = fake_V_trace[step]*1e-3
 
                 
 	#Plotting the list of voltage values
-        plotsrc.plot_mem(fake_V_trace, 0, num_steps, -0.07, -0.05, "Fractional Leaky Neuron Model", True, str(datetime.datetime.now()))
+        plotsrc.plot_mem(V_trace, 0, num_steps, -0.071, -0.048, "Fractional Leaky Neuron Model", True, str(datetime.datetime.now()))
+
+        #plt.plot(np.arange(num_steps - 2), mem_stuff)
+        #plt.show()
 
 
 if __name__ == '__main__':
