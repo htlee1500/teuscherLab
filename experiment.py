@@ -1,0 +1,4 @@
+import torchtest
+
+
+torchtest.main()

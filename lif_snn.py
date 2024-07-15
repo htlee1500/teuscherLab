@@ -38,6 +38,10 @@ class NN(nn.Module):
                 output_values_trace = list()
 
                 hidden_spikes_trace = list()
+                hidden_mem_trace = list()
+
+                hidden_current_trace = list()
+                output_current_trace = list()
 
                 spiked_data = list()
                 for sample in data:
@@ -56,12 +60,15 @@ class NN(nn.Module):
                         #rint(spiked_data[0,step,:])
                         hidden_current = self.hidden_synapses(spiked_data[:,step,:])
                         hidden_spikes, hidden_mem = self.flif_hidden(hidden_current, hidden_mem)
-
+                        
+                        hidden_mem_trace.append(hidden_mem)
+                        hidden_current_trace.append(hidden_current)
                         hidden_spikes_trace.append(hidden_spikes)
 
                         output_current = self.output_synapses(hidden_spikes)
                         output_spikes, output_mem = self.flif_output(output_current, output_mem)
 
+                        output_current_trace.append(output_current)
                         output_spikes_trace.append(output_spikes)
                         output_values_trace.append(output_mem)
 
@@ -72,6 +79,35 @@ class NN(nn.Module):
                 
                 sample = random.randint(0, data.size()[0]-1) # batch_size
                 if testing:
+
+                        hidden_mem_trace = torch.stack(hidden_mem_trace)
+                        hidden_current_trace = torch.stack(hidden_current_trace)
+                        output_current_trace = torch.stack(output_current_trace)
+
+                        figure, ax = plt.subplots(2)
+
+                        for i in range(10):
+                                neuron = random.randint(0, self.flif_hidden.layer_size-1)
+                                ax[0].plot(np.arange(self.num_steps), hidden_mem_trace[:,sample, neuron].tolist(), label = str(neuron))
+                                ax[1].plot(np.arange(self.num_steps), hidden_current_trace[:,sample, neuron].tolist(), label = "Current to " + str(neuron))
+                        ax[0].set_title("Hidden Layer for Sample " + str(sample))
+                        ax[0].legend()
+                        ax[1].set_title("Hidden Layer inputs")
+                        ax[1].legend()
+                        plt.show()
+
+                        figure, ax = plt.subplots(2)
+
+                        for i in range(10):
+                                ax[0].plot(np.arange(self.num_steps), output_values_trace[:,sample, i].tolist(), label = str(i))
+                                ax[1].plot(np.arange(self.num_steps), output_current_trace[:,sample, i].tolist(), label = "Current to " + str(i))
+
+                        ax[0].set_title("Output Layer for Sample " + str(sample))
+                        ax[0].legend()
+                        ax[1].set_title("Output Layer inputs")
+                        ax[1].legend()
+                        plt.show()
+                        
 
                         plotsrc.plot_snn_spikes(spiked_data[sample], hidden_spikes_trace[:,sample,:], output_spikes_trace[:,sample,:], self.num_steps, "Spikes at step " + str(sample))
 

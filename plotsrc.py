@@ -211,7 +211,7 @@ def plot_reset_comparison(spk_in, mem_rec, spk_rec, mem_rec0, spk_rec0):
 
   plt.show()
 
-def plot_snn_spikes(spk_in, spk1_rec, spk2_rec, num_steps, title):
+def plot_snn_spikes(spk_in, y, spk1_rec, spk2_rec, num_steps, title):
   # Generate Plots
   fig, ax = plt.subplots(3, figsize=(8,7), sharex=True, 
                         gridspec_kw = {'height_ratios': [1, 1, 0.4]})
@@ -220,7 +220,7 @@ def plot_snn_spikes(spk_in, spk1_rec, spk2_rec, num_steps, title):
   splt.raster(spk_in.reshape(num_steps, -1), ax[0], s=0.1, c="black")
   ax[0].set_ylabel("Input Spikes")
   ax[0].set_title(title)
-  ax[0].set_ylim([0,784])
+  ax[0].set_ylim([0,y])
 
   # Plot hidden layer spikes
   splt.raster(spk1_rec.reshape(num_steps, -1), ax[1], s = 0.1, c="black")

@@ -22,7 +22,7 @@ class trace_builder():
 
         def init_trace(self, V_new, V_old):
                 # batch_size x layer_size tensors as input
-                V_delta = torch.sub(V_new, V_old)#.detach()
+                V_delta = torch.sub(V_new, V_old).detach()
                 #V_delta = torch.transpose(V_delta, 0, 1)
 
                 self.delta_trace.append(V_delta)
@@ -41,7 +41,7 @@ class trace_builder():
                 # add incoming V_new values
                 # V_new is a tensor with dims batch_size x layer_size
 
-                V_delta = torch.sub(V_new, V_old)#.detach()
+                V_delta = torch.sub(V_new, V_old).detach()
                 #V_delta = torch.transpose(V_delta, 0, 1)
 
                 self.delta_trace.append(V_delta)
