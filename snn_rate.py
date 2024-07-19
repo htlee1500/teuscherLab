@@ -18,7 +18,6 @@ from torchvision import datasets, transforms
 
 import Fractional_LIF
 import flif_snn
-import lif_snn
 
 
 
@@ -72,7 +71,7 @@ def main():
         optimizer = torch.optim.Adam(net.parameters(), lr=5e-3, betas = (0.9, 0.999))
 
 
-        num_epochs = 1
+        num_epochs = 5
         loss_hist = list()
         test_loss_hist = list()
         counter = 0
@@ -106,7 +105,7 @@ def main():
 
                         spiked_data = torch.stack(spiked_data)
 
-                        spike_record, memory_record, _ = net(spiked_data, False)
+                        spike_record, memory_record, _ = net(spiked_data, targets, False)
 
                         
                         loss_val = loss(spike_record, targets)
@@ -141,15 +140,7 @@ def main():
                                 spiked_test_data = torch.stack(spiked_test_data).to(device)
 
                                 
-                                test_spike, test_memory, sample = net(spiked_test_data, False)
-
-                                """
-                                print(f"Prediction for Image {sample}")
-                                idx = test_spike[sample].sum(dim=0)
-                                _, guess = torch.max(idx, dim=0)
-                                _, second_guess = torch.max(idx[1:], dim=0)
-                                print("Correctly guessed:", (guess.item() == targets[sample]).item(), ". Predicted:", guess.item(), "; Expected:", targets[sample].item())
-                                """
+                                test_spike, test_memory, sample = net(spiked_test_data, test_targets, False)
 
                                 
                                 test_loss = loss(test_spike, test_targets)
@@ -196,7 +187,7 @@ def main():
                         spiked_data = torch.stack(spiked_data)
 
 
-                        test_spikes, _, _ = net(spiked_data, False)
+                        test_spikes, _, _ = net(spiked_data, targets, False)
 
                         _, predicted = test_spikes.sum(dim=0).max(1)
                         total += targets.size(0)
@@ -208,7 +199,7 @@ def main():
         print("Performance:", performance)
 
 
-        net(spiked_data, True)
+        net(spiked_data, targets, True)
 
         
                                 

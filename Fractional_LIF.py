@@ -1,14 +1,11 @@
 # imports
 import snntorch as snn
-from snntorch import spikeplot as splt
-from snntorch import spikegen
 
 import torch
 import torch.nn as nn
 
 import numpy as np
 import math
-import compute
 
 import timeit
 
@@ -59,13 +56,6 @@ class FLIF(nn.Module):
                         self.N += 1
 
                         return spike, V_new
-
-                
-                spike = self.spike_gradient((V_old - self.threshold))
-
-               
-
-                
                         
                 if N == 1:
 			#Classic LIF
@@ -83,7 +73,7 @@ class FLIF(nn.Module):
                         delta_trace = self.delta_trace[:,:,0:N-1]
 
                         weights = FLIF.weight_vector[-N+1:]
-                        memory_V = torch.matmul(delta_trace, weights)
+                        memory_V = torch.matmul(delta_trace, weights) # (batch x layer x steps) x (steps) = (batch x layer)
 
                         V_new = torch.sub(V_new, memory_V)
                         

@@ -34,7 +34,7 @@ class SNN(nn.Module):
                 self.device = device
 
 
-        def forward(self, data, plotting):
+        def forward(self, data, targets, plotting):
 
                 # initialize values
                 plotting = plotting
@@ -125,9 +125,10 @@ class SNN(nn.Module):
                         hid_mem = torch.stack(hidden_mem_trace).detach().cpu().numpy()
                         out_spk = torch.stack(output_spikes_trace).detach().cpu().numpy()
                         out_mem = torch.stack(output_mem_trace).detach().cpu().numpy()
+                        tar = targets.detach().cpu().numpy()
 
-                        file_location = "MNIST_Training/post_train2" + ".npz"
-                        np.savez(file_location, hid_spk=hid_spk, hid_mem=hid_mem, out_spk=out_spk, out_mem=out_mem)
+                        file_location = "../MNIST_Training/post_train" + ".npz"
+                        np.savez(file_location, hid_spk=hid_spk, hid_mem=hid_mem, out_spk=out_spk, out_mem=out_mem, tar=tar)
                         
 
                         
