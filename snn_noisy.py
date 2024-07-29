@@ -102,7 +102,7 @@ def main(model):
                                 # Add noise
                                 for k in range(i):
 
-                                        data[:, :, neurons[k]] = torch.tensor(noise[batch, :, k]).to(device)
+                                        spiked_data[:, :, neurons[k]] = torch.tensor(noise[batch, :, k]).to(device)
                                 
                                 targets = all_targets[batch]
 
