@@ -80,7 +80,7 @@ def main(model):
                                 
                         # Generate noise for the inputs
                         # num_batches x batch_size x num_input
-                        noise = np.random.rand(num_batches, batch_size, i)
+                        noise = np.random.rand(num_batches, batch_size, num_steps, i)
                         
                         acc = 0
                         for batch in range(num_batches):
@@ -102,7 +102,7 @@ def main(model):
                                 # Add noise
                                 for k in range(i):
 
-                                        spiked_data[:, :, neurons[k]] = torch.tensor(noise[batch, :, k]).to(device)
+                                        spiked_data[:, :, neurons[k]] = torch.tensor(noise[batch, :, :, k]).to(device)
                                 
                                 targets = all_targets[batch]
 
