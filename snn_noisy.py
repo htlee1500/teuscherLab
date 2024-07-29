@@ -11,16 +11,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
-
 import flif_snn
 import random
 import timeit
 
 
-def main():
-        
+def main(model):
+
         # Network size and device setup
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
         
@@ -38,7 +35,7 @@ def main():
         net = flif_snn.SNN(num_input, num_hidden1, num_output, num_steps, device).to(device)
 
         # Load learned weights into the network
-        loader = np.load("../MNIST_Training/parameters.npz", allow_pickle = True)
+        loader = np.load("../MNIST_Training/parameters_" + model + ".npz", allow_pickle = True)
         hid_con = loader['hid_con']
         out_con = loader['out_con']
 
@@ -64,22 +61,23 @@ def main():
 
 
         num_samples = 100
-        num_perturbed = 20
+        num_perturbed = 100
 
-        accuracy = np.zeros((num_perturbed, num_samples))
+        accuracy = np.zeros(num_samples)
 
-
+        num_batches = 20
         
 
         print("Beginning testing")
-        for i in range(num_perturbed):
+        for i in range(0, num_perturbed+1, 10):
 
                 for j in range(num_samples):
 
                         start = timeit.default_timer()
                         
                         # Select i inputs to add noise to
-                        neurons = [random.randint(0, num_input -1) for k in range(i)]
+                        neurons = random.sample(range(0, 100), i)
+                                
                         # Generate noise for the inputs
                         # num_batches x batch_size x num_input
                         noise = np.random.rand(num_batches, batch_size, i)
@@ -89,10 +87,6 @@ def main():
 
                                 data = all_data[batch].clone() # batch_size x num_input
 
-                                # Add noise
-                                for k in range(i):
-
-                                        data[:, neurons[k]] = torch.tensor(noise[batch, :, k]).to(device)
                                 
                                 # Then spike
 
@@ -104,6 +98,11 @@ def main():
                                         spiked_data.append(spiked_sample)
 
                                 spiked_data = torch.stack(spiked_data)
+
+                                # Add noise
+                                for k in range(i):
+
+                                        data[:, :, neurons[k]] = torch.tensor(noise[batch, :, k]).to(device)
                                 
                                 targets = all_targets[batch]
 
@@ -114,17 +113,20 @@ def main():
 
                         acc = acc / num_batches
                         
-                        accuracy[i][j] = acc
+                        accuracy[j] = acc
 
                         end = timeit.default_timer()
                         print(f"Sample {j} completed for {i} noisy inputs. Time elapsed: {end-start}")
+
+                np.savez("../MNIST_Training/" + model + "_noisy/mc_noisy_" + model + "_" + str(i) + ".npz", acc=accuracy)
+                print(f"Saved data for {i} perturbations")
         
         # Destination for results (may modify)
-        np.savez("../MNIST_Training/mc_noisy.npz", acc=accuracy)
-        print("Saved data.")
+        
 
                         
                 
 
 if __name__ == '__main__':
-        main()
+        main("ce")
+        main("mse")

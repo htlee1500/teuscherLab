@@ -22,14 +22,18 @@ class SNN(nn.Module):
                 super().__init__()
 
                 self.hidden_synapses = nn.Linear(num_input, num_hidden)
-                #self.hidden_synapses.weight = nn.Parameter(torch.abs(torch.mul(self.hidden_synapses.weight, 1)))
                 self.flif_hidden = Fractional_LIF.FLIF(num_hidden, device, num_steps)
-                
+                """
+                self.inhib_synapses = nn.Linear(num_hidden, num_hidden)
+                weight = self.inhib_synapses.weight
+                weight = torch.abs(weight)
+                weight = torch.mul(weight, -1)
+                weight.fill_diagonal_(0)
+                self.inhib_synapses.weight = nn.Parameter(weight)
+                """
                 self.output_synapses = nn.Linear(num_hidden, num_output)
-                #self.output_synapses.weight = nn.Parameter(torch.abs(torch.mul(self.output_synapses.weight, 2)))
-                #self.output_synapses.weight = nn.Parameter(torch.mul(self.output_synapses.weight, 2))
-                
                 self.flif_output = Fractional_LIF.FLIF(num_output, device, num_steps)
+                
                 self.num_steps = num_steps
                 self.device = device
 
@@ -38,8 +42,6 @@ class SNN(nn.Module):
 
                 # initialize values
                 plotting = plotting
-
-                spiked_data = list()
 
                 
 
@@ -55,14 +57,20 @@ class SNN(nn.Module):
                 hidden_mem_trace = list()
                 input_current_trace = list()
                 hidden_current_trace = list()
+
+                #inhib_current = torch.zeros(0)
                 
 
-
-                start = timeit.default_timer()
                 for step in range(self.num_steps):
 
                         hidden_current = self.hidden_synapses(data[:,step,:])
+                        """
+                        if step > 0:
+                                hidden_current = hidden_current + inhib_current
+                        """
                         hidden_spikes, hidden_mem = self.flif_hidden(hidden_current, hidden_mem)
+
+                        #inhib_current = self.inhib_synapses(hidden_spikes)
 
                         hidden_mem_trace.append(hidden_mem)
                         input_current_trace.append(hidden_current)
@@ -76,11 +84,10 @@ class SNN(nn.Module):
                         hidden_current_trace.append(output_current)
                         output_mem_trace.append(output_mem)
 
-
-                end = timeit.default_timer()
-                #print("Batch processed in ", end-start, "seconds")
-
+                        
                 sample = random.randint(0, data.size(0)-1)
+
+                self.hid_spk = torch.stack(hidden_spikes_trace)
                 
                 if plotting:
                         
@@ -126,14 +133,26 @@ class SNN(nn.Module):
                         out_spk = torch.stack(output_spikes_trace).detach().cpu().numpy()
                         out_mem = torch.stack(output_mem_trace).detach().cpu().numpy()
                         tar = targets.detach().cpu().numpy()
+                        in_spk = data.detach().cpu().numpy()
 
-                        file_location = "../MNIST_Training/post_train" + ".npz"
-                        np.savez(file_location, hid_spk=hid_spk, hid_mem=hid_mem, out_spk=out_spk, out_mem=out_mem, tar=tar)
+                        file_location = "../MNIST_Training/post_train_ce" + ".npz"
+                        np.savez(file_location, hid_spk=hid_spk, hid_mem=hid_mem, out_spk=out_spk, out_mem=out_mem, tar=tar, in_spk=in_spk)
+
+
+                        hid_con = self.hidden_synapses.weight.detach().cpu().numpy()
+                        out_con = self.output_synapses.weight.detach().cpu().numpy()
+
+                        np.savez("../MNIST_Training/parameters_rat.npz", hid_con=hid_con, out_con=out_con)
                         
 
                         
                 return torch.stack(output_spikes_trace, dim=0), torch.stack(output_mem_trace, dim=0), sample
 
+        def load(self, hidden, output):
+
+                self.hidden_synapses.weight = nn.Parameter(hidden)
+                self.output_synapses.weight = nn.Parameter(output)
+        
         # Do not use; for sanity purposes only
         def test(self, data):
 

@@ -60,7 +60,7 @@ class FLIF(nn.Module):
                 if N == 1:
 			#Classic LIF
                         tau = self.Cm / self.gl
-                        V_new = V_old + (self.dt/tau)*(-1 * V_old + I/self.gl) # new 1x(layer size) tensor
+                        V_new = V_old + (self.dt/tau)*(-1 * (V_old-self.VL) + I/self.gl) # new 1x(layer size) tensor
                         
 
                 else:

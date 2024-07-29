@@ -39,9 +39,18 @@ def main():
 
     if data_type == 'spk':
         # batch x steps x layer
+        batch_size = np.shape(in_spk)[0]
+        index = input("Choose image index: ")
+
+        if index == 'r':
+
+            index = random.randint(0, batch_size -1)
+        
         num_steps = np.shape(in_spk)[1]
 
-        plotsrc.plot_snn_spikes(torch.tensor(in_spk[0, :, :]), np.shape(in_spk)[2], torch.tensor(hid_spk[:, 0, :]), torch.tensor(out_spk[:, 0, :]), num_steps, "Spike Plot for Image with Target " + str(targets[0].item()))
+        index = int(index)
+
+        plotsrc.plot_snn_spikes(torch.tensor(in_spk[index, :, :]), np.shape(in_spk)[2], torch.tensor(hid_spk[:, index, :]), torch.tensor(out_spk[:, index, :]), num_steps, "Spike Plot for Image with Target " + str(targets[index].item()))
 
         quit()
         

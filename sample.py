@@ -37,66 +37,47 @@ def main():
         net = flif_snn.SNN(num_input, num_hidden1, num_output, num_steps, device).to(device)
 
         # Load learned weights into the network
-        loader = np.load("MNIST_Training/parameters.npz", allow_pickle = True)
+        loader = np.load("../MNIST_Training/parameters.npz", allow_pickle = True)
         hid_con = loader['hid_con']
         out_con = loader['out_con']
 
         hid_con = torch.tensor(hid_con).to(device)
         out_con = torch.tensor(out_con).to(device)
 
-        success = net.load(hid_con, out_con)
+        net.load(hid_con, out_con)
         
-        if success == -1:
-                quit()
         #-----------------------------------------------------------------------------------------
 
         # Pre-created set of test batches (can be generated using spiked_data_builder.py)
-        loader = np.load("MNIST_Training/dataset.npz", allow_pickle = True)
+        loader = np.load("../MNIST_Training/dataset.npz", allow_pickle = True)
         all_data = torch.tensor(loader['dat']).to(device)
         all_targets = torch.tensor(loader['tar']).to(device)
         print("Data loaded successfully")
         
         num_batches = all_targets.size(0)
 
+        batch = random.randint(0, num_batches - 1)
 
-        num_samples = 100
-        num_perturbed = 20
+        data = all_data[batch].clone()          
+        targets = all_targets[batch]
 
-        accuracy = np.zeros((num_perturbed, num_samples))
+        spikes, mem, _ = net(data, targets, False)
 
-        print("Beginning testing")
-        for i in range(num_perturbed):
+        in_spk = data.detach().cpu().numpy()
+        hid_spk = net.hid_spk.detach().cpu().numpy()
+        out_spk = spikes.detach().cpu().numpy()
+        tar = targets.detach().cpu().numpy()
 
-                for j in range(num_samples):
+        print(snnfunc.acc.accuracy_rate(spikes, targets))
 
-                        start = timeit.default_timer()
-                        
-                        deleted = [random.randint(0, num_input-1) for k in range(i)]
-                        acc = 0
-                        for batch in range(num_batches):
+        cont = input("Continue? ")
 
-                                data = all_data[batch].clone()
+        if cont != "y":
+                quit()
 
-                                for neuron in deleted:
-
-                                        data[:, neuron] = torch.zeros_like(data[:, neuron])
-                                
-                                targets = all_targets[batch]
-
-                                # Change this line; function call likely won't work for your net
-                                spikes, _, _ = net(data, targets, False)
-
-                                acc += snnfunc.acc.accuracy_rate(spikes, targets)
-
-                        acc = acc / num_batches
-                        
-                        accuracy[i][j] = acc
-
-                        end = timeit.default_timer()
-                        print(f"Sample {j} completed for {i} deletions. Time elapsed: {end-start}")
         
         # Destination for results (may modify)
-        np.savez("MNIST_Training/mc_dead.npz", acc=accuracy)
+        np.savez("../MNIST_Training/smpl.npz", in_spk=in_spk, hid_spk=hid_spk, out_spk=out_spk, tar=tar)
         print("Saved data.")
 
                         

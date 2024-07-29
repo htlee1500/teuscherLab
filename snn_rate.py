@@ -28,7 +28,11 @@ def train_printer(epoch, iter_counter, loss_hist, test_loss_hist, counter):
         print(f"Test Set Loss: {test_loss_hist[counter]:.2f}")
         print("\n")
 
+def spiker(data, num_steps):
 
+        #return spikegen.latency(data, num_steps=num_steps, tau=1, normalize = False)
+        return spikegen.rate(data, num_steps=num_steps)
+        
 # MAIN FUNCTION
 def main():
         
@@ -56,18 +60,18 @@ def main():
 
 
         num_input = scale*scale
-        num_hidden1 = 1000
-        num_hidden2 = 750
+        num_hidden = 1000
         num_output = 10
 
         num_steps = 200
 
         
-        #net = flif_snn.SNN2(num_input, num_hidden1, num_hidden2, num_output, num_steps).to(device)
-        net = flif_snn.SNN(num_input, num_hidden1, num_output, num_steps, device).to(device)
+        net = flif_snn.SNN(num_input, num_hidden, num_output, num_steps, device).to(device)
+
         
         loss = snnfunc.ce_rate_loss()
-        #loss = snnfunc.mse_count_loss(correct_rate = 0.8, incorrect_rate = 0.2)
+        #loss = snnfunc.mse_count_loss()
+        #loss = snnfunc.ce_temporal_loss()
         optimizer = torch.optim.Adam(net.parameters(), lr=5e-3, betas = (0.9, 0.999))
 
 
@@ -99,7 +103,7 @@ def main():
                         spiked_data = list()
                         for sample in data.view(batch_size, -1):
 
-                                spiked_sample = spikegen.rate(sample, num_steps = num_steps)
+                                spiked_sample = spiker(sample, num_steps=num_steps)
 
                                 spiked_data.append(spiked_sample) # contains batch_size num_steps x input_size tensors (for MNIST, 128 25x784 tensors)
 
@@ -133,7 +137,7 @@ def main():
                                 spiked_test_data = list()
                                 for sample in test_data.view(batch_size, -1):
 
-                                        spiked_sample = spikegen.rate(sample, num_steps = num_steps)
+                                        spiked_sample = spiker(sample, num_steps=num_steps)
 
                                         spiked_test_data.append(spiked_sample) # contains batch_size num_steps x input_size tensors (for MNIST, 128 25x784 tensors)
 
@@ -180,7 +184,7 @@ def main():
                         spiked_data = list()
                         for sample in data.view(data.size(0), -1):
 
-                                spiked_sample = spikegen.rate(sample, num_steps = num_steps)
+                                spiked_sample = spiker(sample, num_steps=num_steps)
 
                                 spiked_data.append(spiked_sample) # contains batch_size num_steps x input_size tensors (for MNIST, 128 25x784 tensors)
 
