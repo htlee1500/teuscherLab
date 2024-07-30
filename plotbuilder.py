@@ -70,6 +70,7 @@ def main():
     indices = np.arange(sample_size)
 
     neurons = [random.randint(0, layer_size -1) for j in range(10)]
+
     
     for x in range(dim):
 

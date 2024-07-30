@@ -212,6 +212,11 @@ def plot_reset_comparison(spk_in, mem_rec, spk_rec, mem_rec0, spk_rec0):
   plt.show()
 
 def plot_snn_spikes(spk_in, y, spk1_rec, spk2_rec, num_steps, title):
+
+  plt.rc('axes', titlesize = 15)
+  plt.rc('axes', labelsize = 15)
+  plt.rc('xtick', labelsize=15)
+  plt.rc('ytick', labelsize=15)
   # Generate Plots
   fig, ax = plt.subplots(3, figsize=(8,7), sharex=True, 
                         gridspec_kw = {'height_ratios': [1, 1, 0.4]})

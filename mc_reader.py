@@ -11,8 +11,8 @@ import timeit
 
 def main():
         
-        model = "mse"
-        typ = "dead"
+        model = input("Model name: ")
+        typ = input("Data type: ")
         
         directory = "../MNIST_Training/" + model + "_" + typ + "/mc_"+ typ + "_" + model + "_"
 
@@ -32,15 +32,17 @@ def main():
 
         if typ == "dead":
                 message = "Inputs Removed from Network"
+                ax = "deleted"
 
         else:
                 message = "Inputs Perturbed"
+                ax = "perturbed"
 
-        plt.ylim(0.8, 0.9)
+        #plt.ylim(0.8, 0.9)
         plt.errorbar(indices, avg_acc, error, ecolor='r', capsize=3, fmt="k--.")
-        plt.xlabel("Number of inputs deleted")
+        plt.xlabel("Number of inputs " + ax)
         plt.ylabel(f"Accuracy over {sample_size} simulations")
-        plt.title("MNIST Classification Accuracy on " + model.upper() +  " Model with " + message)
+        plt.title("Accuracy on " + model.upper() +  " Model with " + message)
         plt.show()
 
         """
